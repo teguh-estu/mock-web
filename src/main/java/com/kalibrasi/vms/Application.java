@@ -1,5 +1,7 @@
 package com.kalibrasi.vms;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,12 +44,19 @@ public class Application extends WebMvcConfigurerAdapter {
 	RethinkDB r = RethinkDB.r;
 
 	@RequestMapping(value="/api/enrollment", method=RequestMethod.POST)
-	public void enrollment(@RequestParam("file") MultipartFile file, @RequestParam("data") String data) {
+	public void enrollment(@RequestParam("file") MultipartFile file, @RequestParam("data") String data) throws Exception {
 		
-		System.out.println(file.getName());		
-		System.out.println(data);
+		File hostedFile = new File(file.getOriginalFilename());
+		hostedFile.createNewFile(); 
+	    FileOutputStream fos = new FileOutputStream(new File("www/img", hostedFile.getName())); 
+	    fos.write(file.getBytes());
+	    fos.close(); 
+
+	    Map map = new Gson().fromJson(data, Map.class);
+	    map.put("imageUrl", "img/" + hostedFile.getName());
+	    map.put("onVisit", false);
 		
-		//r.db("vms_mock").table("visitor").insert(data).run(db.getConnection());
+		r.db("vms_mock").table("visitor").insert(map).run(db.getConnection());
 	}
 	
 	@RequestMapping(value="/api/update", method=RequestMethod.POST)
