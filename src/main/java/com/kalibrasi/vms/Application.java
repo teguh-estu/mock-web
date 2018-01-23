@@ -61,7 +61,7 @@ public class Application extends WebMvcConfigurerAdapter {
 	
 	@RequestMapping(value="/api/update", method=RequestMethod.POST)
 	public void update(@RequestBody Map data) {
-		r.db("vms_mock").table("visitor").replace(data).run(db.getConnection());
+		r.db("vms_mock").table("visitor").filter(r.hashMap("visitorId", data.get("visitorId"))).update(data).run(db.getConnection());
 	}
 	
 	@RequestMapping("/api/visitor")
