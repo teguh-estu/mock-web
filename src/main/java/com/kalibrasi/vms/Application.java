@@ -75,9 +75,6 @@ public class Application extends WebMvcConfigurerAdapter {
 		Map visitorMap = new HashMap();
 		Cursor<HashMap> visitors = r.db("vms_mock").table("visitor").filter(r.hashMap("visitorId", data.get("visitorId"))).run(db.getConnection());
 		while (visitors.hasNext()) {
-			//String visitor = visitors.next();	
-			//System.out.println("visitor : "+visitor);
-		    //visitorMap = new Gson().fromJson(visitor, Map.class);			
 		    System.out.println(">>> found document!!");
 		    visitorMap = visitors.next();
 		}
