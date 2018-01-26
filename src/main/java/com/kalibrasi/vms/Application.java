@@ -27,6 +27,7 @@ import com.rethinkdb.RethinkDB;
 import com.rethinkdb.net.Cursor;
 
 import org.apache.http.client.HttpClient;
+import org.apache.http.HttpResponse;
 
 @SpringBootApplication
 @RestController
@@ -106,7 +107,9 @@ public class Application extends WebMvcConfigurerAdapter {
 		HttpPost request = new HttpPost("http://localhost/api/checkin");
 	    request.addHeader("content-type", "application/json");
 	    request.setEntity(new StringEntity(new Gson().toJson(sentMap)));
-	    httpClient.execute(request);		
+	    HttpResponse response = httpClient.execute(request);		
+	    
+	    System.out.println("Response Code : "+ response.getStatusLine().getStatusCode());
 		System.out.println("call rtls api/checkin succeed!");
 		//end
 	}
