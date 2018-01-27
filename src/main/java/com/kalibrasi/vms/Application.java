@@ -1,7 +1,10 @@
 package com.kalibrasi.vms;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +31,7 @@ import com.rethinkdb.net.Cursor;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpEntity;
 
 @SpringBootApplication
 @RestController
@@ -69,9 +73,7 @@ public class Application extends WebMvcConfigurerAdapter {
 	
 	@RequestMapping(value="/api/update", method=RequestMethod.POST)
 	public void update(@RequestBody Map data) throws Exception {
-		System.out.println(new Gson().toJson(data));
-		r.db("vms_mock").table("visitor").filter(r.hashMap("visitorId", data.get("visitorId"))).update(data).run(db.getConnection());
-		
+
 		//begin:added by WK, 20180125 to call api checkin		
 		Map visitorMap = new HashMap();
 		Cursor<HashMap> visitors = r.db("vms_mock").table("visitor").filter(r.hashMap("visitorId", data.get("visitorId"))).run(db.getConnection());
@@ -82,8 +84,10 @@ public class Application extends WebMvcConfigurerAdapter {
 	    
 		Map sentMap = new HashMap();
 		sentMap.put("visitorId", visitorMap.get("visitorId"));
-		sentMap.put("tagId", visitorMap.get("tagId"));
-		sentMap.put("purpose", visitorMap.get("purpose"));		
+		//sentMap.put("tagId", visitorMap.get("tagId"));
+		sentMap.put("tagId", data.get("tagId"));
+		//sentMap.put("purpose", visitorMap.get("purpose"));		
+		sentMap.put("purpose", data.get("purpose"));		
 		sentMap.put("name", visitorMap.get("name"));
 		
 		//InetAddress addr = InetAddress.getLocalHost();
@@ -97,21 +101,56 @@ public class Application extends WebMvcConfigurerAdapter {
 		photoUrl.append("/");
 		photoUrl.append(visitorMap.get("imageUrl"));
 		sentMap.put("photoUrl", photoUrl.toString());
-		  
+
+		String type = visitorMap.get("isVip") != null ? "VVIP" : "REGULAR" ;
+		System.out.println("type : "+ type);
 		sentMap.put("checkinTime", new Date().getTime()); 
-		//sentMap.put("type", visitorMap.get("isVip") ? "VIP" : ""); 
-		sentMap.put("type", ""); 
-		sentMap.put("destination", visitorMap.get("destination"));
+		sentMap.put("type", type ); 
+		//sentMap.put("type", "REGULAR"); 
+		//sentMap.put("destination", visitorMap.get("destination"));
+		sentMap.put("destination", data.get("destination"));
+
+		System.out.println("parameter to post : "+ new Gson().toJson(sentMap));
 		
 		HttpClient httpClient = HttpClientBuilder.create().build();
 		HttpPost request = new HttpPost("http://localhost/api/checkin");
 	    request.addHeader("content-type", "application/json");
 	    request.setEntity(new StringEntity(new Gson().toJson(sentMap)));
-	    HttpResponse response = httpClient.execute(request);		
-	    
-	    System.out.println("Response Code : "+ response.getStatusLine().getStatusCode());
-		System.out.println("call rtls api/checkin succeed!");
-		//end
+	    try {
+	    	HttpResponse response = httpClient.execute(request);
+			
+		    int statusCode = response.getStatusLine().getStatusCode();
+	    	HttpEntity entity = response.getEntity();
+	    	StringBuilder sb = new StringBuilder();
+	    	try {
+	    	    BufferedReader reader = 
+	    	           new BufferedReader(new InputStreamReader(entity.getContent()), 65728);
+	    	    String line = null;
+
+	    	    while ((line = reader.readLine()) != null) {
+	    	        sb.append(line);
+	    	    }
+
+	    	}
+	    	catch (IOException e) { e.printStackTrace(); }
+	    	catch (Exception e) { e.printStackTrace(); }
+		    String responseBody = sb.toString();
+		    System.out.println("finalResult " + responseBody);
+		    
+		    System.out.println("Response Code : "+ statusCode);
+		    //System.out.println("Response Body : "+ response.getEntity().getContent());
+			//System.out.println("call rtls api/checkin succeed!");
+			//end
+			if(statusCode == 200 && responseBody.equals("{\"status\":\"ok\"}")){
+				System.out.println(new Gson().toJson(data));
+				r.db("vms_mock").table("visitor").filter(r.hashMap("visitorId", data.get("visitorId"))).update(data).run(db.getConnection());
+			}else if(statusCode == 200 && responseBody.indexOf("error")>-1){
+			    System.out.println(responseBody);
+			}
+			
+		} catch (Exception e1) {
+			System.out.println("There is problem with connection to API server. Please make sure the server is up.");
+		}		
 	}
 	
 	@RequestMapping("/api/visitor")
