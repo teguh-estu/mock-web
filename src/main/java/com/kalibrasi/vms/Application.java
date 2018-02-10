@@ -72,21 +72,41 @@ public class Application extends WebMvcConfigurerAdapter {
 	}
 	
 	@RequestMapping(value="/api/update", method=RequestMethod.POST)
-	public void update(@RequestBody Map data) throws Exception {
+	public void update(@RequestBody Map data) throws Exception{
 
-		//begin:added by WK, 20180125 to call api checkin		
+		boolean isServiceOK = false;
+		if(((Boolean)data.get("onVisit"))){
+			//call checkin
+			isServiceOK = callCheckin(data);	
+		} else {
+			//call checkout
+			isServiceOK = callCheckout(data);	
+		}
+		
+		System.out.println(">>>isServiceOK : "+ isServiceOK);
+		if(isServiceOK){
+			System.out.println(new Gson().toJson(data));
+			r.db("vms_mock").table("visitor").filter(r.hashMap("visitorId", data.get("visitorId"))).update(data).run(db.getConnection());			
+		}	
+	}
+	
+	@RequestMapping("/api/visitor")
+	public Object getVisitor() {
+		return r.db("vms_mock").table("visitor").orderBy(r.asc("name")).run(db.getConnection());	
+	}
+	
+	//added by WK, 20180125 to call api checkin		
+	private boolean callCheckin(Map data) throws Exception{
+		boolean isOK = false;
 		Map visitorMap = new HashMap();
 		Cursor<HashMap> visitors = r.db("vms_mock").table("visitor").filter(r.hashMap("visitorId", data.get("visitorId"))).run(db.getConnection());
 		while (visitors.hasNext()) {
-		    System.out.println(">>> found document!!");
-		    visitorMap = visitors.next();
+			visitorMap = visitors.next();
 		}
-	    
+		
 		Map sentMap = new HashMap();
 		sentMap.put("visitorId", visitorMap.get("visitorId"));
-		//sentMap.put("tagId", visitorMap.get("tagId"));
 		sentMap.put("tagId", data.get("tagId"));
-		//sentMap.put("purpose", visitorMap.get("purpose"));		
 		sentMap.put("purpose", data.get("purpose"));		
 		sentMap.put("name", visitorMap.get("name"));
 		
@@ -103,59 +123,95 @@ public class Application extends WebMvcConfigurerAdapter {
 		sentMap.put("photoUrl", photoUrl.toString());
 
 		String type = visitorMap.get("isVip") != null ? "VVIP" : "REGULAR" ;
-		System.out.println("type : "+ type);
 		sentMap.put("checkinTime", new Date().getTime()); 
 		sentMap.put("type", type ); 
-		//sentMap.put("type", "REGULAR"); 
-		//sentMap.put("destination", visitorMap.get("destination"));
 		sentMap.put("destination", data.get("destination"));
 
 		System.out.println("parameter to post : "+ new Gson().toJson(sentMap));
 		
 		HttpClient httpClient = HttpClientBuilder.create().build();
 		HttpPost request = new HttpPost("http://localhost/api/checkin");
-	    request.addHeader("content-type", "application/json");
-	    request.setEntity(new StringEntity(new Gson().toJson(sentMap)));
-	    try {
-	    	HttpResponse response = httpClient.execute(request);
+		request.addHeader("content-type", "application/json");
+		request.setEntity(new StringEntity(new Gson().toJson(sentMap)));
+		try {
+			HttpResponse response = httpClient.execute(request);
 			
-		    int statusCode = response.getStatusLine().getStatusCode();
-	    	HttpEntity entity = response.getEntity();
-	    	StringBuilder sb = new StringBuilder();
-	    	try {
-	    	    BufferedReader reader = 
-	    	           new BufferedReader(new InputStreamReader(entity.getContent()), 65728);
-	    	    String line = null;
+			int statusCode = response.getStatusLine().getStatusCode();
+			HttpEntity entity = response.getEntity();
+			StringBuilder sb = new StringBuilder();
+			try {
+				BufferedReader reader = 
+					   new BufferedReader(new InputStreamReader(entity.getContent()), 65728);
+				String line = null;
 
-	    	    while ((line = reader.readLine()) != null) {
-	    	        sb.append(line);
-	    	    }
+				while ((line = reader.readLine()) != null) {
+					sb.append(line);
+				}
 
-	    	}
-	    	catch (IOException e) { e.printStackTrace(); }
-	    	catch (Exception e) { e.printStackTrace(); }
-		    String responseBody = sb.toString();
-		    System.out.println("finalResult " + responseBody);
-		    
-		    System.out.println("Response Code : "+ statusCode);
-		    //System.out.println("Response Body : "+ response.getEntity().getContent());
-			//System.out.println("call rtls api/checkin succeed!");
-			//end
+			}
+			catch (IOException e) { e.printStackTrace(); }
+			catch (Exception e) { e.printStackTrace(); }
+			String responseBody = sb.toString();
+			System.out.println("finalResult " + responseBody);				
+			System.out.println("Response Code : "+ statusCode);
 			if(statusCode == 200 && responseBody.equals("{\"status\":\"ok\"}")){
 				System.out.println(new Gson().toJson(data));
-				r.db("vms_mock").table("visitor").filter(r.hashMap("visitorId", data.get("visitorId"))).update(data).run(db.getConnection());
+				isOK = true;
 			}else if(statusCode == 200 && responseBody.indexOf("error")>-1){
-			    System.out.println(responseBody);
+				System.out.println(responseBody);
+				//return false;
 			}
 			
 		} catch (Exception e1) {
 			System.out.println("There is problem with connection to API server. Please make sure the server is up.");
-		}		
-	}
-	
-	@RequestMapping("/api/visitor")
-	public Object getVisitor() {
-		return r.db("vms_mock").table("visitor").orderBy(r.asc("name")).run(db.getConnection());	
-	}
+			//return false;
+		}
+		return isOK;
+	}	
+
+	//added by WK, 20180207 to call api checkout		
+	private boolean callCheckout(Map data) throws Exception{
+		data.put("checkinOut", new Date().getTime()); 
+		System.out.println(new Gson().toJson(data));
+		boolean isOK = false;
+		HttpClient httpClient = HttpClientBuilder.create().build();
+		HttpPost request = new HttpPost("http://localhost/api/checkout");
+		request.addHeader("content-type", "application/json");
+		request.setEntity(new StringEntity(new Gson().toJson(data)));
+		try {
+			HttpResponse response = httpClient.execute(request);
+			
+			int statusCode = response.getStatusLine().getStatusCode();
+			HttpEntity entity = response.getEntity();
+			StringBuilder sb = new StringBuilder();
+			try {
+				BufferedReader reader = 
+					   new BufferedReader(new InputStreamReader(entity.getContent()), 65728);
+				String line = null;
+
+				while ((line = reader.readLine()) != null) {
+					sb.append(line);
+				}
+
+			}
+			catch (IOException e) { e.printStackTrace(); }
+			catch (Exception e) { e.printStackTrace(); }
+			String responseBody = sb.toString();
+			System.out.println("finalResult " + responseBody);				
+			System.out.println("Response Code : "+ statusCode);
+			if(statusCode == 200 && responseBody.equals("{\"status\":\"ok\"}")){
+				System.out.println(new Gson().toJson(data));
+				isOK = true;
+			}else if(statusCode == 200 && responseBody.indexOf("error")>-1){
+				System.out.println(responseBody);
+				//return false;
+			}
+			
+		} catch (Exception e1) {
+			System.out.println("There is problem with connection to API server. Please make sure the server is up.");
+			//return false;
+		}
+		return isOK;
+	}	
 	
 }
