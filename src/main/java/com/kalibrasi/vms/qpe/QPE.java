@@ -125,7 +125,7 @@ public class QPE {
 			Double x = oldPosition.get(0);
 			Double y = oldPosition.get(1);
 			Double z = oldPosition.get(2);
-			double maxMovementPerSecond = 2;
+			double maxMovementPerSecond = 8;
 			double movX = getDoubleRandom(-1, 1) * maxMovementPerSecond;
 			double movY= getDoubleRandom(-1, 1) * maxMovementPerSecond;
 			
