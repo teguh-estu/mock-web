@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.apache.commons.exec.util.StringUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,10 +32,11 @@ public class QPE {
 	    
 	    @RequestMapping(value = "/qpe/checkin", method = RequestMethod.POST)
 	    public void checkin(@RequestBody Map data) throws Exception {
-	    	if (!data.containsKey("tagId")) throw new Exception("visitorId not exist");
-			if (!data.containsKey("building")) throw new Exception("checkinTime not exist");
+	    	if (!data.containsKey("tagId")) throw new Exception("tagId not exist");
+			if (!data.containsKey("building")) throw new Exception("building not exist");
 			removeTag((String) data.get("tagId")); 
-			addTag((String) data.get("tagId"), (String) data.get("building")); 
+			
+			addTag((String) data.get("tagId"), (String) data.get("building"), (String) data.get("floor")); 
 			
 	    }
 	    
@@ -54,12 +56,12 @@ public class QPE {
 	    	}
 	    }
 	    
-		private void addTag(String tagId, String building) {
+		private void addTag(String tagId, String building, String floor) {
 			Tag tag = new Tag();
 			tag.setAreaId("TrackingArea1");
 			tag.setAreaName("KCM");
 			
-			String floor = String.valueOf(getIntRandom(1, 5));
+			if (floor == null || "".equals(floor)) floor = String.valueOf(getIntRandom(1, 5));
 			
 			tag.setCoordinateSystemId("coordinateSystem1");
 			tag.setCoordinateSystemName(building + "_" + floor);
