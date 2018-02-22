@@ -61,7 +61,7 @@ public class QPE {
 			tag.setAreaId("TrackingArea1");
 			tag.setAreaName("KCM");
 			
-			if (floor == null || "".equals(floor)) floor = String.valueOf(getIntRandom(1, 5));
+			if (floor == null || "".equals(floor)) floor = "1";//String.valueOf(getIntRandom(1, 5));
 			
 			tag.setCoordinateSystemId("coordinateSystem1");
 			tag.setCoordinateSystemName(building + "_" + floor);
@@ -346,5 +346,14 @@ public class QPE {
 				return true;
 			}
 			
+		}
+		
+		public static void main(String[] args) {
+			String abc = "A,,B;C,D;E,F";
+			String[] abcs =  abc.split("[,;]") ;
+			
+			for (String a: abcs) {
+				System.out.println(a);
+			}
 		}
 }
