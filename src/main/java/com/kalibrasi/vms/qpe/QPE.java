@@ -42,7 +42,8 @@ public class QPE {
 	    
 	    @RequestMapping(value = "/qpe/checkout", method = RequestMethod.POST)
 	    public void checkout(@RequestBody Map data) throws Exception {
-	    	if (!data.containsKey("tagId")) throw new Exception("visitorId not exist");
+	    	System.out.println(data);
+	    	//if (!data.containsKey("tagId")) throw new Exception("tagId not exist");
 			removeTag((String) data.get("tagId")); 
 			
 	    }
@@ -350,7 +351,7 @@ public class QPE {
 		
 		public static void main(String[] args) {
 			String abc = "A,,B;C,D;E,F";
-			String[] abcs =  abc.split("[,;]") ;
+			String[] abcs =  abc.split("[,;]+") ;
 			
 			for (String a: abcs) {
 				System.out.println(a);
