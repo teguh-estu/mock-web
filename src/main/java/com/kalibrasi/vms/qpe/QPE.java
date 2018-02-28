@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController	
 public class QPE {
 	private Tags tags = new Tags();
+	private Map<String, Boolean> movement = new HashMap<String, Boolean>();
     
 	   @RequestMapping("/qpe/getTagPosition")
 	  	public Tags getTags() {
@@ -45,6 +46,15 @@ public class QPE {
 	    	System.out.println(data);
 	    	//if (!data.containsKey("tagId")) throw new Exception("tagId not exist");
 			removeTag((String) data.get("tagId")); 
+			
+	    }
+	    
+	    @RequestMapping(value = "/qpe/move", method = RequestMethod.POST)
+	    public void move(@RequestBody Map data) throws Exception {
+	    	System.out.println(data);
+	    	if (!data.containsKey("tagId")) throw new Exception("tagId not exist");
+	    	if (!data.containsKey("movement")) throw new Exception("move not exist");
+			movement.put((String)data.get("tagId"), (Boolean)data.get("movement"));
 			
 	    }
 	    
@@ -116,8 +126,11 @@ public class QPE {
 			tags.setResponseTS(System.currentTimeMillis());
 			List<Tag> tagList = tags.getTags();
 			for (Tag tag: tagList) {
-				tag.setPositionTs(System.currentTimeMillis());
-				getNewPosition(tag.getSmoothedPosition(), tag.getCoordinateSystemName().split("_")[0]);
+				Object move = movement.get((String) tag.getId());
+				if (move == null || (Boolean) move) {
+					tag.setPositionTs(System.currentTimeMillis());
+					getNewPosition(tag.getSmoothedPosition(), tag.getCoordinateSystemName().split("_")[0]);
+				}
 			}
 			//log.info("End moving data");
 		}
@@ -349,12 +362,5 @@ public class QPE {
 			
 		}
 		
-		public static void main(String[] args) {
-			String abc = "A,,B;C,D;E,F";
-			String[] abcs =  abc.split("[,;]+") ;
-			
-			for (String a: abcs) {
-				System.out.println(a);
-			}
-		}
+
 }
