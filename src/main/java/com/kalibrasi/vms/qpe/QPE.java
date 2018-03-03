@@ -46,6 +46,7 @@ public class QPE {
 	    	System.out.println(data);
 	    	//if (!data.containsKey("tagId")) throw new Exception("tagId not exist");
 			removeTag((String) data.get("tagId")); 
+			movement.remove((String) data.get("tagId"));
 			
 	    }
 	    
