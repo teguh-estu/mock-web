@@ -41,6 +41,16 @@ public class QPE {
 			
 	    }
 	    
+	    @RequestMapping(value = "/qpe/zone", method = RequestMethod.POST)
+	    public void zone(@RequestBody Map data) throws Exception {
+	    	if (!data.containsKey("tagId")) throw new Exception("tagId not exist");
+			if (!data.containsKey("zone")) throw new Exception("Zone not exist");
+			enterZone((String) data.get("tagId"), (String) data.get("zone")); 
+			
+			//addTag((String) data.get("tagId"), (String) data.get("building"), (String) data.get("floor")); 
+			
+	    }
+	    
 	    @RequestMapping(value = "/qpe/checkout", method = RequestMethod.POST)
 	    public void checkout(@RequestBody Map data) throws Exception {
 	    	System.out.println(data);
@@ -68,6 +78,20 @@ public class QPE {
 	    	}
 	    }
 	    
+	    private void enterZone(String tagId, String zone) {
+	    	
+	    	for (Tag t: tags.getTags()) {
+	    		if (tagId.equals(t.getId())) {
+	    			List<Map<String,String>> zoneList = new ArrayList<Map<String, String>>();
+	    			Map<String, String> zoneMap = new HashMap<String, String>();
+	    			zoneMap.put("id", "0001");
+	    			zoneMap.put("name", zone);
+	    			zoneList.add(zoneMap);
+	    			t.setZones(zoneList);	    			    			
+	    		}
+	    	}
+	    }
+	    
 		private void addTag(String tagId, String building, String floor) {
 			Tag tag = new Tag();
 			tag.setAreaId("TrackingArea1");
@@ -76,7 +100,8 @@ public class QPE {
 			if (floor == null || "".equals(floor)) floor = "1";//String.valueOf(getIntRandom(1, 5));
 			
 			tag.setCoordinateSystemId("coordinateSystem1");
-			tag.setCoordinateSystemName(building + "_" + floor);
+			//tag.setCoordinateSystemName(building + "_" + floor);
+			tag.setCoordinateSystemName("G"+building+"L"+floor);
 			
 			Double x = getDoubleRandom(0, 10);
 			Double y = getDoubleRandom(0, 10);
@@ -103,7 +128,7 @@ public class QPE {
 			List<Map<String,String>> zoneList = new ArrayList<Map<String, String>>();
 			Map<String, String> zoneMap = new HashMap<String, String>();
 			zoneMap.put("id", "0001");
-			zoneMap.put("name", "Zone001");
+			zoneMap.put("name", "G"+building+"L"+floor);
 			zoneList.add(zoneMap);
 			tag.setZones(zoneList);
 			synchronized("tag") {
@@ -130,13 +155,14 @@ public class QPE {
 				Object move = movement.get((String) tag.getId());
 				if (move == null || (Boolean) move) {
 					tag.setPositionTs(System.currentTimeMillis());
-					getNewPosition(tag.getSmoothedPosition(), tag.getCoordinateSystemName().split("_")[0]);
+					
+					getNewPosition(tag.getSmoothedPosition());
 				}
 			}
 			//log.info("End moving data");
 		}
 		
-		private static void getNewPosition(List<Double> oldPosition, String building) {
+		private static void getNewPosition(List<Double> oldPosition) {
 			List<Double> newPos = new ArrayList<Double>();
 			
 			Double x = oldPosition.get(0);
